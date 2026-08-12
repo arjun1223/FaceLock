@@ -42,7 +42,7 @@ FaceLock is a macOS 14+ portfolio/research project that detects and recognizes a
 5. Open FaceLock. It has no Dock icon; look for its face icon in the macOS menu bar.
 
 > [!WARNING]
-> Version 1.0 is ad-hoc signed and **not Apple-notarized**. macOS therefore cannot verify its developer or scan result. The safest option is to build the source yourself or wait for a notarized release. If you have reviewed the source and intentionally choose to run this build, first try to open it, then use **System Settings → Privacy & Security → Security → Open Anyway**, following [Apple's official instructions](https://support.apple.com/en-euro/102445). Never use random shell commands from the internet to disable Gatekeeper globally.
+> Version 1.0 is ad-hoc signed and **not Apple-notarized**. macOS therefore cannot verify its developer or scan result.  If you have reviewed the source and intentionally choose to run this build, first try to open it, then use **System Settings → Privacy & Security → Security → Open Anyway**, following [Apple's official instructions](https://support.apple.com/en-euro/102445). Never use random shell commands from the internet to disable Gatekeeper globally.
 
 ## First-time setup
 
