@@ -2,6 +2,11 @@ import XCTest
 @testable import FaceLock
 
 final class FaceLockTests: XCTestCase {
+    func testPublicBuildUsesVersionedKeychainNamespace() {
+        XCTAssertEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v2")
+        XCTAssertNotEqual(KeychainStore.service, "com.facelock.local.credentials")
+    }
+
     func testCosineSimilarity() {
         let service = FaceEmbeddingService()
         XCTAssertEqual(service.similarity([1, 0, 0], [1, 0, 0]), 1, accuracy: 0.0001)

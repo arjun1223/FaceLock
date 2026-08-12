@@ -12,11 +12,14 @@ enum KeychainError: LocalizedError {
 
 struct KeychainStore {
     static let shared = KeychainStore()
-    private let service = "com.facelock.local.credentials"
+    /// Versioned for the first public build. Pre-release Xcode/ad-hoc builds used a
+    /// different signing identity, so querying their items can make macOS show a
+    /// login-Keychain password dialog. Public builds intentionally never query them.
+    static let service = "io.github.arjun1223.FaceLock.credentials.v2"
 
     private func baseQuery(account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: service,
+         kSecAttrService as String: Self.service,
          kSecAttrAccount as String: account]
     }
 
@@ -73,10 +76,15 @@ struct KeychainStore {
         return result as? Data
     }
 
-    func load(account: String) throws -> Data? {
+    func load(account: String, allowAuthenticationUI: Bool = true) throws -> Data? {
         var query = baseQuery(account: account)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
+        if !allowAuthenticationUI {
+            let context = LAContext()
+            context.interactionNotAllowed = true
+            query[kSecUseAuthenticationContext as String] = context
+        }
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecItemNotFound { return nil }
