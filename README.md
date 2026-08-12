@@ -31,15 +31,15 @@ FaceLock is a macOS 14+ portfolio/research project that detects and recognizes a
 ### Install the app
 
 1. Open the [latest FaceLock release](https://github.com/arjun1223/FaceLock/releases/latest).
-2. Download `FaceLock-1.0.2-macOS-arm64.zip`. The tiny `.sha256` file beside it is optional: it lets you verify that the ZIP was not corrupted or changed.
+2. Download `FaceLock-1.0.3-macOS-arm64.zip`. The tiny `.sha256` file beside it is optional: it lets you verify that the ZIP was not corrupted or changed.
 3. To verify, download both files, open Terminal, and run these exact commands:
 
    ```sh
    cd ~/Downloads
-   shasum -a 256 -c FaceLock-1.0.2-macOS-arm64.zip.sha256
+   shasum -a 256 -c FaceLock-1.0.3-macOS-arm64.zip.sha256
    ```
 
-   Terminal should print `FaceLock-1.0.2-macOS-arm64.zip: OK`. You can skip this check if you build FaceLock yourself from reviewed source.
+   Terminal should print `FaceLock-1.0.3-macOS-arm64.zip: OK`. You can skip this check if you build FaceLock yourself from reviewed source.
 
 4. Unzip the archive and move `FaceLock.app` to `/Applications` **before granting permissions**.
 5. Open FaceLock. It has no Dock icon; look for its face icon in the macOS menu bar.
@@ -61,7 +61,7 @@ FaceLock is a macOS 14+ portfolio/research project that detects and recognizes a
 > Version 1.0.1 and later intentionally do not read Keychain items or encrypted face profiles made by pre-release/Xcode builds with another signing identity. If you used a development build, click **Deny** on any old Keychain dialog, quit it, launch the latest release, then enroll and set up the vault once again.
 
 > [!IMPORTANT]
-> The downloadable portfolio packages are ad-hoc signed. FaceLock 1.0.2 therefore uses a fresh local encrypted-data namespace rather than risking a macOS login-Keychain prompt for items created by 1.0.1. After replacing 1.0.1, enroll your face and configure the password vault once more. Earlier data remains local and untouched.
+> The downloadable portfolio packages are ad-hoc signed. Each package therefore uses a fresh local encrypted-data namespace rather than risking a macOS login-Keychain prompt for items created by another build. After replacing an earlier version, enroll your face and configure the password vault once more. Earlier data remains local and untouched.
 
 ## Everyday use
 
@@ -100,7 +100,7 @@ The repository contains generic source, tests, documentation, artwork, and a gen
 - Authoritative `CGSessionCopyCurrentDictionary` lock-state checks immediately before decryption and autofill.
 - Prewarmed Core ML and preconfigured 720p camera pipeline for low wake-to-match latency.
 - Compact notch-attached success animation.
-- Ten unit tests covering model loading, cosine similarity, consensus, quality gates, angle tolerance, liveness, pose, attention, Keychain isolation, and the safe fast path.
+- Eleven unit tests covering model loading, cosine similarity, consensus, quality gates, enrollment motion, angle tolerance, liveness, pose, attention, Keychain isolation, and the safe fast path.
 
 ## How it works
 

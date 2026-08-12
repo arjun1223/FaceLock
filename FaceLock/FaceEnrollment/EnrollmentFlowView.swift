@@ -8,6 +8,23 @@ private struct EnrollmentMotionTarget {
     let y: Double
 }
 
+enum EnrollmentMotionPolicy {
+    static let motionThreshold = 3.25
+    static let targetAlignmentMinimum = 0.50
+    static let minimumDirectionChangeDegrees = 12.0
+    static let stableTicksRequired = 2
+
+    static func angularDistance(from first: Double, to second: Double) -> Double {
+        let difference = abs(first - second).truncatingRemainder(dividingBy: 360)
+        return min(difference, 360 - difference)
+    }
+
+    static func hasAdvanced(from previous: Double?, to current: Double) -> Bool {
+        guard let previous else { return true }
+        return angularDistance(from: previous, to: current) >= minimumDirectionChangeDegrees
+    }
+}
+
 struct EnrollmentFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var camera = CameraManager()
@@ -23,8 +40,9 @@ struct EnrollmentFlowView: View {
     @State private var physicalUpSign: Double?
     @State private var horizontalSignalSource: Int?
     @State private var verticalSignalSource: Int?
-    private let motionThreshold = 4.0
-    private let samplesPerPose = 3
+    @State private var stableTargetTicks = 0
+    @State private var lastCompletedMotionAngle: Double?
+    private let samplesPerPose = 2
     private let targets: [EnrollmentMotionTarget] = [
         .init(prompt: "Move your head slowly to the left", x: 1, y: 0),
         .init(prompt: "Continue toward the upper-left", x: 0.707, y: 0.707),
@@ -88,17 +106,21 @@ struct EnrollmentFlowView: View {
     private var captureGuidance: String {
         if let processingStatus { return processingStatus }
         guard camera.pose.faceDetected else { return camera.statusText }
-        if let guidance = camera.pose.qualityGuidance { return guidance }
-        if isCapturing { return "Hold that position while FaceLock captures several samples…" }
+        if let guidance = camera.pose.enrollmentQualityGuidance { return guidance }
+        if isCapturing { return "Nice — capturing that angle…" }
+        if stableTargetTicks > 0 { return "Good — hold for just a moment…" }
         if neutralPose == nil { return "Hold still for the starting position…" }
         return "Move gradually to fill the ring — step \(min(targetIndex + 1, targets.count)) of \(targets.count)"
     }
 
     private func automaticCaptureTick() {
-        guard camera.pose.isRecognitionReady,
+        guard camera.pose.isEnrollmentReady,
               !isCapturing,
               capturedFrames.count < (targets.count + 1) * samplesPerPose,
-              processingStatus == nil else { return }
+              processingStatus == nil else {
+            stableTargetTicks = 0
+            return
+        }
         let pose = camera.pose
         guard let neutralPose else {
             self.neutralPose = pose
@@ -111,7 +133,6 @@ struct EnrollmentFlowView: View {
         let noseXSignal = (pose.noseX - neutralPose.noseX) * 75
         let pitchSignal = pose.pitchDegrees - neutralPose.pitchDegrees
         let noseYSignal = (pose.noseY - neutralPose.noseY) * 75
-        let rollSignal = (pose.rollDegrees - neutralPose.rollDegrees) * 0.4
         let horizontal: Double
         if horizontalSignalSource == 0 { horizontal = yawSignal }
         else if horizontalSignalSource == 1 { horizontal = noseXSignal }
@@ -120,27 +141,30 @@ struct EnrollmentFlowView: View {
         switch verticalSignalSource {
         case 0: vertical = pitchSignal
         case 1: vertical = noseYSignal
-        case 2: vertical = rollSignal
-        default: vertical = dominantSignal(dominantSignal(pitchSignal, noseYSignal), rollSignal)
+        default: vertical = dominantSignal(pitchSignal, noseYSignal)
         }
 
         if targetIndex == 0 {
-            currentTargetProgress = min(abs(horizontal) / motionThreshold, 1)
-            guard abs(horizontal) >= motionThreshold,
-                  abs(horizontal) > abs(vertical) * 0.7 else { return }
+            currentTargetProgress = min(abs(horizontal) / EnrollmentMotionPolicy.motionThreshold, 1)
+            let targetReached = abs(horizontal) >= EnrollmentMotionPolicy.motionThreshold
+                && abs(horizontal) > abs(vertical) * 0.60
+            guard heldStably(targetReached) else { return }
             horizontalSignalSource = abs(yawSignal) >= abs(noseXSignal) ? 0 : 1
             physicalLeftSign = horizontal >= 0 ? 1 : -1
-            completeCurrentTarget()
+            completeCurrentTarget(directionAngle: 0)
             return
         }
 
         guard let physicalLeftSign else { return }
         let logicalHorizontal = horizontal * physicalLeftSign
         if targetIndex == 1, physicalUpSign == nil {
-            currentTargetProgress = min(min(max(logicalHorizontal, 0), abs(vertical)) / (motionThreshold * 0.65), 1)
-            guard logicalHorizontal >= motionThreshold * 0.55,
-                  abs(vertical) >= motionThreshold * 0.55 else { return }
-            let verticalSignals = [pitchSignal, noseYSignal, rollSignal]
+            currentTargetProgress = min(min(max(logicalHorizontal, 0), abs(vertical)) / (EnrollmentMotionPolicy.motionThreshold * 0.55), 1)
+            guard logicalHorizontal >= EnrollmentMotionPolicy.motionThreshold * 0.45,
+                  abs(vertical) >= EnrollmentMotionPolicy.motionThreshold * 0.45 else {
+                stableTargetTicks = 0
+                return
+            }
+            let verticalSignals = [pitchSignal, noseYSignal]
             verticalSignalSource = verticalSignals.indices.max(by: {
                 abs(verticalSignals[$0]) < abs(verticalSignals[$1])
             })
@@ -152,27 +176,41 @@ struct EnrollmentFlowView: View {
         let projection = max(0, logicalHorizontal * target.x + logicalVertical * target.y)
         let radius = hypot(logicalHorizontal, logicalVertical)
         let alignment = radius > 0 ? projection / radius : 0
-        currentTargetProgress = min(projection / motionThreshold, 1)
-        guard projection >= motionThreshold, alignment >= 0.55 else { return }
-        completeCurrentTarget()
+        currentTargetProgress = min(projection / EnrollmentMotionPolicy.motionThreshold, 1)
+        let directionAngle = atan2(logicalVertical, logicalHorizontal) * 180 / .pi
+        let targetReached = projection >= EnrollmentMotionPolicy.motionThreshold
+            && alignment >= EnrollmentMotionPolicy.targetAlignmentMinimum
+            && EnrollmentMotionPolicy.hasAdvanced(from: lastCompletedMotionAngle, to: directionAngle)
+        guard heldStably(targetReached) else { return }
+        completeCurrentTarget(directionAngle: directionAngle)
     }
 
     private func dominantSignal(_ first: Double, _ second: Double) -> Double {
         abs(first) >= abs(second) ? first : second
     }
 
-    private func completeCurrentTarget() {
-        capturePoseSamples(advanceTarget: true)
+    private func heldStably(_ targetReached: Bool) -> Bool {
+        guard targetReached else {
+            stableTargetTicks = 0
+            return false
+        }
+        stableTargetTicks += 1
+        return stableTargetTicks >= EnrollmentMotionPolicy.stableTicksRequired
     }
 
-    private func capturePoseSamples(advanceTarget: Bool) {
+    private func completeCurrentTarget(directionAngle: Double) {
+        stableTargetTicks = 0
+        capturePoseSamples(advanceTarget: true, completedAngle: directionAngle)
+    }
+
+    private func capturePoseSamples(advanceTarget: Bool, completedAngle: Double? = nil) {
         isCapturing = true
         errorMessage = nil
         Task {
             do {
                 var poseFrames: [CVPixelBuffer] = []
                 for sampleIndex in 0..<samplesPerPose {
-                    guard camera.pose.isRecognitionReady else { throw FaceEmbeddingError.poorCaptureQuality }
+                    guard camera.pose.isEnrollmentReady else { throw FaceEmbeddingError.poorCaptureQuality }
                     guard let buffer = camera.currentPixelBuffer() else { throw FaceEmbeddingError.noFace }
                     poseFrames.append(buffer)
                     if sampleIndex + 1 < samplesPerPose {
@@ -180,7 +218,10 @@ struct EnrollmentFlowView: View {
                     }
                 }
                 capturedFrames.append(contentsOf: poseFrames)
-                if advanceTarget { targetIndex += 1 }
+                if advanceTarget {
+                    lastCompletedMotionAngle = completedAngle
+                    targetIndex += 1
+                }
                 currentTargetProgress = 0
 
                 let expectedFrames = (targets.count + 1) * samplesPerPose
@@ -220,6 +261,8 @@ struct EnrollmentFlowView: View {
         physicalUpSign = nil
         horizontalSignalSource = nil
         verticalSignalSource = nil
+        stableTargetTicks = 0
+        lastCompletedMotionAngle = nil
         isCapturing = false
         errorMessage = nil
         processingStatus = nil

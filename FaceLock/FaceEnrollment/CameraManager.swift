@@ -9,6 +9,7 @@ struct FacePose: Equatable {
     static let straightOnFacingAngleDegrees = 90.0
     static let maximumFacingAngleDegrees = 125.0
     static let maximumYawDegrees = maximumFacingAngleDegrees - straightOnFacingAngleDegrees
+    static let maximumEnrollmentYawDegrees = 40.0
     private static let centeredCaptureQualityThreshold = 0.18
     private static let angledCaptureQualityThreshold = 0.10
     private static let centeredEyeContactThreshold = 0.22
@@ -71,6 +72,18 @@ struct FacePose: Equatable {
             && confidence >= 0.5
     }
 
+    /// Enrollment can tolerate a little more motion blur and framing drift than
+    /// an unlock decision because it collects multiple poses and embeddings.
+    /// The actual unlock path continues to use the stricter gate above.
+    var isEnrollmentReady: Bool {
+        faceDetected
+            && faceCount == 1
+            && headTurnDegrees <= Self.maximumEnrollmentYawDegrees
+            && captureQuality >= max(0.10, minimumCaptureQuality - 0.04)
+            && faceSize >= 0.16
+            && confidence >= 0.45
+    }
+
     var qualityGuidance: String? {
         guard faceDetected else { return "No face detected" }
         if faceCount != 1 { return "Only one face can be visible" }
@@ -79,6 +92,19 @@ struct FacePose: Equatable {
             return "Turn slightly toward the camera — supported face angle is up to 125°"
         }
         if captureQuality < minimumCaptureQuality { return "Improve the lighting and hold the camera steady" }
+        return nil
+    }
+
+    var enrollmentQualityGuidance: String? {
+        guard faceDetected else { return "No face detected" }
+        if faceCount != 1 { return "Only one face can be visible" }
+        if faceSize < 0.16 { return "Move a little closer to the camera" }
+        if headTurnDegrees > Self.maximumEnrollmentYawDegrees {
+            return "That is far enough — move gently toward the next marker"
+        }
+        if captureQuality < max(0.10, minimumCaptureQuality - 0.04) {
+            return "Hold briefly and improve the lighting if possible"
+        }
         return nil
     }
 }
