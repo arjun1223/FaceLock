@@ -16,9 +16,9 @@ enum PasswordVaultError: LocalizedError {
 @MainActor
 final class PasswordVault: ObservableObject {
     static let shared = PasswordVault()
-    private let keyAccount = "mac-password-encryption-key-v2"
-    private let ciphertextAccount = "mac-password-ciphertext-v2"
-    private let manualBiometricGateKey = "passwordVaultUsesManualBiometricGate-v2"
+    private let keyAccount = "mac-password-encryption-key-v3"
+    private let ciphertextAccount = "mac-password-ciphertext-v3"
+    private let manualBiometricGateKey = "passwordVaultUsesManualBiometricGate-v3"
     private let keychain = KeychainStore.shared
     private var sessionKeyData: Data?
     private var sessionCiphertext: Data?
