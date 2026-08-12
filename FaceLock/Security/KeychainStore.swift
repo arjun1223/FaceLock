@@ -12,10 +12,10 @@ enum KeychainError: LocalizedError {
 
 struct KeychainStore {
     static let shared = KeychainStore()
-    /// Versioned for the first public build. Pre-release Xcode/ad-hoc builds used a
-    /// different signing identity, so querying their items can make macOS show a
-    /// login-Keychain password dialog. Public builds intentionally never query them.
-    static let service = "io.github.arjun1223.FaceLock.credentials.v2"
+    /// Versioned for the 1.0.2 public package. These downloads are ad-hoc signed,
+    /// so a new binary cannot safely assume macOS will authorize access to an
+    /// earlier build's items without showing the login-Keychain password dialog.
+    static let service = "io.github.arjun1223.FaceLock.credentials.v3"
 
     private func baseQuery(account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,

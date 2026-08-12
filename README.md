@@ -60,6 +60,9 @@ FaceLock is a macOS 14+ portfolio/research project that detects and recognizes a
 > [!NOTE]
 > Version 1.0.1 and later intentionally do not read Keychain items or encrypted face profiles made by pre-release/Xcode builds with another signing identity. If you used a development build, click **Deny** on any old Keychain dialog, quit it, launch the latest release, then enroll and set up the vault once again.
 
+> [!IMPORTANT]
+> The downloadable portfolio packages are ad-hoc signed. FaceLock 1.0.2 therefore uses a fresh local encrypted-data namespace rather than risking a macOS login-Keychain prompt for items created by 1.0.1. After replacing 1.0.1, enroll your face and configure the password vault once more. Earlier data remains local and untouched.
+
 ## Everyday use
 
 - FaceLock starts as a menu-bar utility with no Dock icon.
