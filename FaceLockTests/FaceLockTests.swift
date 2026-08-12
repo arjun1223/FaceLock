@@ -3,9 +3,9 @@ import XCTest
 
 final class FaceLockTests: XCTestCase {
     func testPublicBuildUsesVersionedKeychainNamespace() {
-        XCTAssertEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v3")
+        XCTAssertEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v4")
         XCTAssertNotEqual(KeychainStore.service, "com.facelock.local.credentials")
-        XCTAssertNotEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v2")
+        XCTAssertNotEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v3")
     }
 
     func testCosineSimilarity() {
@@ -105,6 +105,22 @@ final class FaceLockTests: XCTestCase {
                                 eyeContactScore: 0.11, faceDetected: true).isRecognitionReady)
         XCTAssertFalse(FacePose(yawDegrees: 0, captureQuality: 1,
                                 eyeContactScore: 0.11, faceDetected: true).isLookingAtCamera)
+    }
+
+    func testEnrollmentMotionRequiresRealDirectionalProgress() {
+        XCTAssertFalse(EnrollmentMotionPolicy.hasAdvanced(from: 45, to: 52))
+        XCTAssertTrue(EnrollmentMotionPolicy.hasAdvanced(from: 45, to: 60))
+        XCTAssertTrue(EnrollmentMotionPolicy.hasAdvanced(from: 175, to: -165))
+        XCTAssertEqual(EnrollmentMotionPolicy.angularDistance(from: 175, to: -165),
+                       20, accuracy: 0.001)
+
+        let mildlyBlurredTurn = FacePose(yawDegrees: 38, captureQuality: 0.10,
+                                         faceSize: 0.18, confidence: 0.5,
+                                         faceDetected: true)
+        XCTAssertTrue(mildlyBlurredTurn.isEnrollmentReady)
+        XCTAssertFalse(mildlyBlurredTurn.isRecognitionReady)
+        XCTAssertFalse(FacePose(yawDegrees: 41, captureQuality: 1,
+                                faceDetected: true).isEnrollmentReady)
     }
 
     func testEyeAttentionRequiresCenteredOpenEyesAndFinalAttention() {

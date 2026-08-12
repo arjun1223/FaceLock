@@ -2,6 +2,15 @@
 
 All notable FaceLock changes are recorded here.
 
+## 1.0.3 — 2026-08-12
+
+### Fixed
+
+- Reworked face enrollment so diagonal steps no longer depend on noisy head-roll measurements.
+- Added broad guided target zones with a short two-tick stability hold and a real directional-progress requirement.
+- Reduced enrollment to two samples per pose and added enrollment-specific quality tolerance without weakening unlock-time checks.
+- Isolated 1.0.3 encrypted data from earlier ad-hoc packages to avoid login-Keychain authorization prompts.
+
 ## 1.0.2 — 2026-08-12
 
 ### Improved
