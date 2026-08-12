@@ -1,0 +1,16 @@
+.DS_Store
+
+# Xcode user and build output
+DerivedData/
+build/
+dist/
+*.xcarchive
+*.dSYM
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+
+# Local tooling
+.codex/
+.swiftpm/

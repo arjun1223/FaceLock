@@ -1,0 +1,458 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		000000000000000000000B01 /* FaceLockApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A01 /* FaceLockApp.swift */; };
+		000000000000000000000B02 /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A02 /* MenuBarController.swift */; };
+		000000000000000000000B03 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A03 /* CameraManager.swift */; };
+		000000000000000000000B04 /* FaceEmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A04 /* FaceEmbeddingService.swift */; };
+		000000000000000000000B05 /* EnrollmentFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A05 /* EnrollmentFlowView.swift */; };
+		000000000000000000000B06 /* LivenessChallenge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A06 /* LivenessChallenge.swift */; };
+		000000000000000000000B07 /* BiometricGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A07 /* BiometricGate.swift */; };
+		000000000000000000000B08 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A08 /* KeychainStore.swift */; };
+		000000000000000000000B09 /* CryptoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A09 /* CryptoService.swift */; };
+		000000000000000000000B10 /* SecuritySettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A10 /* SecuritySettings.swift */; };
+		000000000000000000000B11 /* PasswordVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A11 /* PasswordVault.swift */; };
+		000000000000000000000B12 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A12 /* SettingsWindowController.swift */; };
+		000000000000000000000B13 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A13 /* SettingsView.swift */; };
+		000000000000000000000B14 /* PasswordAutotyper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A14 /* PasswordAutotyper.swift */; };
+		000000000000000000000B15 /* UnlockCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A15 /* UnlockCoordinator.swift */; };
+		000000000000000000000B16 /* WakeLockMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A16 /* WakeLockMonitor.swift */; };
+		000000000000000000000B17 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A17 /* Assets.xcassets */; };
+		000000000000000000000B18 /* AdaFace_IR101.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A21 /* AdaFace_IR101.mlpackage */; };
+		000000000000000000000B19 /* UnlockSuccessOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A22 /* UnlockSuccessOverlay.swift */; };
+		000000000000000000000B20 /* FaceLockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000A20 /* FaceLockTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		000000000000000000000C01 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 00000000000000000000F001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 00000000000000000000F101;
+			remoteInfo = FaceLock;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		000000000000000000000A01 /* FaceLockApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceLockApp.swift; sourceTree = "<group>"; };
+		000000000000000000000A02 /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		000000000000000000000A03 /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		000000000000000000000A04 /* FaceEmbeddingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceEmbeddingService.swift; sourceTree = "<group>"; };
+		000000000000000000000A05 /* EnrollmentFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnrollmentFlowView.swift; sourceTree = "<group>"; };
+		000000000000000000000A06 /* LivenessChallenge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivenessChallenge.swift; sourceTree = "<group>"; };
+		000000000000000000000A07 /* BiometricGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricGate.swift; sourceTree = "<group>"; };
+		000000000000000000000A08 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		000000000000000000000A09 /* CryptoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoService.swift; sourceTree = "<group>"; };
+		000000000000000000000A10 /* SecuritySettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecuritySettings.swift; sourceTree = "<group>"; };
+		000000000000000000000A11 /* PasswordVault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordVault.swift; sourceTree = "<group>"; };
+		000000000000000000000A12 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		000000000000000000000A13 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		000000000000000000000A14 /* PasswordAutotyper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordAutotyper.swift; sourceTree = "<group>"; };
+		000000000000000000000A15 /* UnlockCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockCoordinator.swift; sourceTree = "<group>"; };
+		000000000000000000000A16 /* WakeLockMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WakeLockMonitor.swift; sourceTree = "<group>"; };
+		000000000000000000000A17 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		000000000000000000000A18 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		000000000000000000000A19 /* FaceLock.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FaceLock.entitlements; sourceTree = "<group>"; };
+		000000000000000000000A20 /* FaceLockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceLockTests.swift; sourceTree = "<group>"; };
+		000000000000000000000A21 /* AdaFace_IR101.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = AdaFace_IR101.mlpackage; sourceTree = "<group>"; };
+		000000000000000000000A22 /* UnlockSuccessOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnlockSuccessOverlay.swift; sourceTree = "<group>"; };
+		00000000000000000000F301 /* FaceLock.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FaceLock.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		00000000000000000000F302 /* FaceLockTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FaceLockTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		00000000000000000000D001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		00000000000000000000D002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		00000000000000000000E001 = {
+			isa = PBXGroup;
+			children = (
+				00000000000000000000E003 /* FaceLock */,
+				00000000000000000000E009 /* FaceLockTests */,
+				00000000000000000000E002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		00000000000000000000E002 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				00000000000000000000F301 /* FaceLock.app */,
+				00000000000000000000F302 /* FaceLockTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		00000000000000000000E003 /* FaceLock */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000A01 /* FaceLockApp.swift */,
+				000000000000000000000A02 /* MenuBarController.swift */,
+				00000000000000000000E004 /* FaceEnrollment */,
+				00000000000000000000E005 /* Authentication */,
+				00000000000000000000E006 /* Security */,
+				00000000000000000000E007 /* UnlockFlow */,
+				00000000000000000000E008 /* Settings */,
+				00000000000000000000E00A /* Models */,
+				000000000000000000000A17 /* Assets.xcassets */,
+				000000000000000000000A18 /* Info.plist */,
+				000000000000000000000A19 /* FaceLock.entitlements */,
+			);
+			path = FaceLock;
+			sourceTree = "<group>";
+		};
+		00000000000000000000E004 /* FaceEnrollment */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000A03 /* CameraManager.swift */,
+				000000000000000000000A04 /* FaceEmbeddingService.swift */,
+				000000000000000000000A05 /* EnrollmentFlowView.swift */,
+			);
+			path = FaceEnrollment;
+			sourceTree = "<group>";
+		};
+		00000000000000000000E005 /* Authentication */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000A06 /* LivenessChallenge.swift */,
+				000000000000000000000A07 /* BiometricGate.swift */,
+			);
+			path = Authentication;
+			sourceTree = "<group>";
+		};
+		00000000000000000000E006 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000A08 /* KeychainStore.swift */,
+				000000000000000000000A09 /* CryptoService.swift */,
+				000000000000000000000A10 /* SecuritySettings.swift */,
+				000000000000000000000A11 /* PasswordVault.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		00000000000000000000E007 /* UnlockFlow */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000A14 /* PasswordAutotyper.swift */,
+				000000000000000000000A15 /* UnlockCoordinator.swift */,
+				000000000000000000000A16 /* WakeLockMonitor.swift */,
+				000000000000000000000A22 /* UnlockSuccessOverlay.swift */,
+			);
+			path = UnlockFlow;
+			sourceTree = "<group>";
+		};
+		00000000000000000000E008 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000A12 /* SettingsWindowController.swift */,
+				000000000000000000000A13 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		00000000000000000000E009 /* FaceLockTests */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000A20 /* FaceLockTests.swift */,
+			);
+			path = FaceLockTests;
+			sourceTree = "<group>";
+		};
+		00000000000000000000E00A /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000A21 /* AdaFace_IR101.mlpackage */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		00000000000000000000F101 /* FaceLock */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 00000000000000000000C102 /* Build configuration list for PBXNativeTarget "FaceLock" */;
+			buildPhases = (
+				00000000000000000000D003 /* Sources */,
+				00000000000000000000D001 /* Frameworks */,
+				00000000000000000000D005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FaceLock;
+			productName = FaceLock;
+			productReference = 00000000000000000000F301 /* FaceLock.app */;
+			productType = "com.apple.product-type.application";
+		};
+		00000000000000000000F102 /* FaceLockTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 00000000000000000000C103 /* Build configuration list for PBXNativeTarget "FaceLockTests" */;
+			buildPhases = (
+				00000000000000000000D004 /* Sources */,
+				00000000000000000000D002 /* Frameworks */,
+				00000000000000000000D006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				00000000000000000000F201 /* PBXTargetDependency */,
+			);
+			name = FaceLockTests;
+			productName = FaceLockTests;
+			productReference = 00000000000000000000F302 /* FaceLockTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		00000000000000000000F001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					00000000000000000000F101 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					00000000000000000000F102 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 00000000000000000000F101;
+					};
+				};
+			};
+			buildConfigurationList = 00000000000000000000C101 /* Build configuration list for PBXProject "FaceLock" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 00000000000000000000E001;
+			productRefGroup = 00000000000000000000E002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				00000000000000000000F101 /* FaceLock */,
+				00000000000000000000F102 /* FaceLockTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		00000000000000000000D005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000B17 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		00000000000000000000D006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		00000000000000000000D003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000B01 /* FaceLockApp.swift in Sources */,
+				000000000000000000000B02 /* MenuBarController.swift in Sources */,
+				000000000000000000000B03 /* CameraManager.swift in Sources */,
+				000000000000000000000B04 /* FaceEmbeddingService.swift in Sources */,
+				000000000000000000000B05 /* EnrollmentFlowView.swift in Sources */,
+				000000000000000000000B06 /* LivenessChallenge.swift in Sources */,
+				000000000000000000000B07 /* BiometricGate.swift in Sources */,
+				000000000000000000000B08 /* KeychainStore.swift in Sources */,
+				000000000000000000000B09 /* CryptoService.swift in Sources */,
+				000000000000000000000B10 /* SecuritySettings.swift in Sources */,
+				000000000000000000000B11 /* PasswordVault.swift in Sources */,
+				000000000000000000000B12 /* SettingsWindowController.swift in Sources */,
+				000000000000000000000B13 /* SettingsView.swift in Sources */,
+				000000000000000000000B14 /* PasswordAutotyper.swift in Sources */,
+				000000000000000000000B15 /* UnlockCoordinator.swift in Sources */,
+				000000000000000000000B16 /* WakeLockMonitor.swift in Sources */,
+				000000000000000000000B18 /* AdaFace_IR101.mlpackage in Sources */,
+				000000000000000000000B19 /* UnlockSuccessOverlay.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		00000000000000000000D004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				000000000000000000000B20 /* FaceLockTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		00000000000000000000F201 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 00000000000000000000F101 /* FaceLock */;
+			targetProxy = 000000000000000000000C01 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		00000000000000000000C201 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		00000000000000000000C202 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		00000000000000000000C203 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = FaceLock/FaceLock.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FaceLock/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.arjun1223.FaceLock;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		00000000000000000000C204 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = FaceLock/FaceLock.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FaceLock/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.arjun1223.FaceLock;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		00000000000000000000C205 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.arjun1223.FaceLockTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FaceLock.app/Contents/MacOS/FaceLock";
+			};
+			name = Debug;
+		};
+		00000000000000000000C206 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.arjun1223.FaceLockTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/FaceLock.app/Contents/MacOS/FaceLock";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		00000000000000000000C101 /* Build configuration list for PBXProject "FaceLock" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00000000000000000000C201 /* Debug */,
+				00000000000000000000C202 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		00000000000000000000C102 /* Build configuration list for PBXNativeTarget "FaceLock" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00000000000000000000C203 /* Debug */,
+				00000000000000000000C204 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		00000000000000000000C103 /* Build configuration list for PBXNativeTarget "FaceLockTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				00000000000000000000C205 /* Debug */,
+				00000000000000000000C206 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 00000000000000000000F001 /* Project object */;
+}
