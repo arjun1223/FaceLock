@@ -2,6 +2,14 @@
 
 All notable FaceLock changes are recorded here.
 
+## 1.0.2 — 2026-08-12
+
+### Improved
+
+- Extended face recognition from the straight-on 90° position through a 125° facing angle (35° of yaw in either direction).
+- Added pose-aware Vision quality and pupil-attention tolerances for moderate head turns while retaining the normal stricter frontal checks.
+- Added live face-angle feedback to the recognition test and clearer lock-screen scan guidance.
+
 ## 1.0.1 — 2026-08-12
 
 ### Fixed

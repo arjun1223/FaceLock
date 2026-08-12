@@ -4,6 +4,16 @@ import SwiftUI
 import QuartzCore
 
 struct FacePose: Equatable {
+    /// A straight-on face is described to the user as 90°. FaceLock accepts a
+    /// moderate 35° turn on either side, or a 125° maximum facing angle.
+    static let straightOnFacingAngleDegrees = 90.0
+    static let maximumFacingAngleDegrees = 125.0
+    static let maximumYawDegrees = maximumFacingAngleDegrees - straightOnFacingAngleDegrees
+    private static let centeredCaptureQualityThreshold = 0.18
+    private static let angledCaptureQualityThreshold = 0.10
+    private static let centeredEyeContactThreshold = 0.22
+    private static let angledEyeContactThreshold = 0.10
+
     var yawDegrees: Double = 0
     var pitchDegrees: Double = 0
     var rollDegrees: Double = 0
@@ -18,14 +28,45 @@ struct FacePose: Equatable {
     var pupilsDetected = true
     var faceDetected = false
 
+    var headTurnDegrees: Double { abs(yawDegrees) }
+
+    var facingAngleDegrees: Double {
+        Self.straightOnFacingAngleDegrees + headTurnDegrees
+    }
+
+    var isWithinRecognitionAngle: Bool {
+        headTurnDegrees <= Self.maximumYawDegrees
+    }
+
+    private var headTurnFraction: Double {
+        min(headTurnDegrees / Self.maximumYawDegrees, 1)
+    }
+
+    /// Vision's capture-quality and pupil-center scores naturally fall as the
+    /// head turns. Interpolate only inside the supported 90°–125° range so a
+    /// valid moderate-angle look is not treated like a low-quality frontal face.
+    var minimumCaptureQuality: Double {
+        Self.centeredCaptureQualityThreshold
+            + (Self.angledCaptureQualityThreshold - Self.centeredCaptureQualityThreshold) * headTurnFraction
+    }
+
+    var minimumEyeContactScore: Double {
+        Self.centeredEyeContactThreshold
+            + (Self.angledEyeContactThreshold - Self.centeredEyeContactThreshold) * headTurnFraction
+    }
+
     var isLookingAtCamera: Bool {
-        pupilsDetected && eyeOpenness >= 0.10 && eyeContactScore >= 0.22
+        isWithinRecognitionAngle
+            && pupilsDetected
+            && eyeOpenness >= 0.10
+            && eyeContactScore >= minimumEyeContactScore
     }
 
     var isRecognitionReady: Bool {
         faceDetected
             && faceCount == 1
-            && captureQuality >= 0.18
+            && isWithinRecognitionAngle
+            && captureQuality >= minimumCaptureQuality
             && faceSize >= 0.16
             && confidence >= 0.5
     }
@@ -34,7 +75,10 @@ struct FacePose: Equatable {
         guard faceDetected else { return "No face detected" }
         if faceCount != 1 { return "Only one face can be visible" }
         if faceSize < 0.16 { return "Move closer to the camera" }
-        if captureQuality < 0.18 { return "Improve the lighting and hold the camera steady" }
+        if !isWithinRecognitionAngle {
+            return "Turn slightly toward the camera — supported face angle is up to 125°"
+        }
+        if captureQuality < minimumCaptureQuality { return "Improve the lighting and hold the camera steady" }
         return nil
     }
 }

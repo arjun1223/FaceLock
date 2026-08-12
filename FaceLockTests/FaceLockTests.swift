@@ -84,6 +84,28 @@ final class FaceLockTests: XCTestCase {
                                faceCount: 1, faceDetected: true).isRecognitionReady)
     }
 
+    func testRecognitionAllowsFaceAngleThrough125Degrees() {
+        let angled = FacePose(yawDegrees: 35, captureQuality: 0.11,
+                              eyeContactScore: 0.11, eyeOpenness: 0.2,
+                              faceDetected: true)
+        XCTAssertEqual(angled.facingAngleDegrees, 125, accuracy: 0.001)
+        XCTAssertTrue(angled.isWithinRecognitionAngle)
+        XCTAssertTrue(angled.isRecognitionReady)
+        XCTAssertTrue(angled.isLookingAtCamera)
+
+        XCTAssertFalse(FacePose(yawDegrees: 36, captureQuality: 1,
+                                eyeContactScore: 1, faceDetected: true).isRecognitionReady)
+        XCTAssertFalse(FacePose(yawDegrees: 36, captureQuality: 1,
+                                eyeContactScore: 1, faceDetected: true).isLookingAtCamera)
+
+        // The centered gate stays strict; the tolerance applies only as Vision
+        // measures a real head turn inside the supported range.
+        XCTAssertFalse(FacePose(yawDegrees: 0, captureQuality: 0.11,
+                                eyeContactScore: 0.11, faceDetected: true).isRecognitionReady)
+        XCTAssertFalse(FacePose(yawDegrees: 0, captureQuality: 1,
+                                eyeContactScore: 0.11, faceDetected: true).isLookingAtCamera)
+    }
+
     func testEyeAttentionRequiresCenteredOpenEyesAndFinalAttention() {
         XCTAssertFalse(FacePose(eyeContactScore: 0.1, faceDetected: true).isLookingAtCamera)
         XCTAssertFalse(FacePose(eyeOpenness: 0.05, faceDetected: true).isLookingAtCamera)

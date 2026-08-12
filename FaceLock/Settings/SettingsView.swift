@@ -213,6 +213,12 @@ private struct FaceRecognitionTestView: View {
                      : (camera.pose.pupilsDetected ? "Look directly at the camera" : "Keep both open eyes clearly visible"))
                     .font(.callout.bold())
                     .foregroundStyle(camera.pose.isLookingAtCamera ? Color.green : Color.orange)
+                if camera.pose.faceDetected {
+                    Text(String(format: "Face angle %.0f° — supported through %.0f°",
+                                camera.pose.facingAngleDegrees, FacePose.maximumFacingAngleDegrees))
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(camera.pose.isWithinRecognitionAngle ? Color.white.opacity(0.7) : Color.orange)
+                }
                 Toggle("Mirror preview", isOn: $mirrorPreview)
                     .toggleStyle(.switch).fixedSize().foregroundStyle(Color.white)
                 HStack {

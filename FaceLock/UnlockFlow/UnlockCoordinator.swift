@@ -44,9 +44,16 @@ final class UnlockCoordinator {
                                     : "Camera active — looking for face movement")
         camera.requestAccessAndStart()
         poseObservation = camera.$pose.sink { [weak self] pose in
-            guard let self, !self.isVerifying, pose.isRecognitionReady else { return }
+            guard let self, !self.isVerifying else { return }
+            guard pose.isRecognitionReady else {
+                if pose.faceDetected, let guidance = pose.qualityGuidance {
+                    self.settings.reportTransientUnlockStatus(guidance)
+                }
+                return
+            }
             guard !self.settings.attentionCheckEnabled || pose.isLookingAtCamera else {
-                self.settings.reportTransientUnlockStatus("Face detected — open both eyes and look directly at the camera")
+                self.settings.reportTransientUnlockStatus(String(format: "Face detected at %.0f° — open both eyes and look at the camera",
+                                                                 pose.facingAngleDegrees))
                 return
             }
             self.verifyFreshFrames()

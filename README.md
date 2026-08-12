@@ -31,15 +31,15 @@ FaceLock is a macOS 14+ portfolio/research project that detects and recognizes a
 ### Install the app
 
 1. Open the [latest FaceLock release](https://github.com/arjun1223/FaceLock/releases/latest).
-2. Download `FaceLock-1.0.1-macOS-arm64.zip`. The tiny `.sha256` file beside it is optional: it lets you verify that the ZIP was not corrupted or changed.
+2. Download `FaceLock-1.0.2-macOS-arm64.zip`. The tiny `.sha256` file beside it is optional: it lets you verify that the ZIP was not corrupted or changed.
 3. To verify, download both files, open Terminal, and run these exact commands:
 
    ```sh
    cd ~/Downloads
-   shasum -a 256 -c FaceLock-1.0.1-macOS-arm64.zip.sha256
+   shasum -a 256 -c FaceLock-1.0.2-macOS-arm64.zip.sha256
    ```
 
-   Terminal should print `FaceLock-1.0.1-macOS-arm64.zip: OK`. You can skip this check if you build FaceLock yourself from reviewed source.
+   Terminal should print `FaceLock-1.0.2-macOS-arm64.zip: OK`. You can skip this check if you build FaceLock yourself from reviewed source.
 
 4. Unzip the archive and move `FaceLock.app` to `/Applications` **before granting permissions**.
 5. Open FaceLock. It has no Dock icon; look for its face icon in the macOS menu bar.
@@ -58,7 +58,7 @@ FaceLock is a macOS 14+ portfolio/research project that detects and recognizes a
 7. Lock the Mac. On wake, face the camera with both eyes visible and look toward it. FaceLock falls back silently to normal password entry if recognition, liveness, attention, or autofill fails.
 
 > [!NOTE]
-> Version 1.0.1 intentionally does not read Keychain items or encrypted face profiles made by pre-release/Xcode builds with another signing identity. If you used a development build, click **Deny** on any old Keychain dialog, quit it, launch 1.0.1, then enroll and set up the vault once again.
+> Version 1.0.1 and later intentionally do not read Keychain items or encrypted face profiles made by pre-release/Xcode builds with another signing identity. If you used a development build, click **Deny** on any old Keychain dialog, quit it, launch the latest release, then enroll and set up the vault once again.
 
 ## Everyday use
 
@@ -92,11 +92,12 @@ The repository contains generic source, tests, documentation, artwork, and a gen
 - Fresh-frame sequence tracking so one camera image cannot count as multiple identity votes.
 - A 5-of-7 decision with a safe fast path: if the first five distinct frames all pass, two unnecessary model runs are skipped without weakening the five-vote requirement.
 - Single-face, face-size, pose, confidence, capture-quality, passive-movement, open-eye, and camera-attention gates.
+- Pose-aware recognition and eye-attention checks support face angles from straight-on at 90° through 125° (35° of head turn in either direction).
 - AES-256-GCM face profile encryption and a Touch ID-gated password vault.
 - Authoritative `CGSessionCopyCurrentDictionary` lock-state checks immediately before decryption and autofill.
 - Prewarmed Core ML and preconfigured 720p camera pipeline for low wake-to-match latency.
 - Compact notch-attached success animation.
-- Eight unit tests covering model loading, cosine similarity, consensus, quality gates, liveness, pose, attention, and the safe fast path.
+- Ten unit tests covering model loading, cosine similarity, consensus, quality gates, angle tolerance, liveness, pose, attention, Keychain isolation, and the safe fast path.
 
 ## How it works
 
@@ -185,7 +186,7 @@ Open **Security → Arm Face Unlock for This Session** and approve Touch ID. The
 
 ### macOS asks for my “login” Keychain password
 
-Click **Deny** and quit that copy of FaceLock. This means the app's signing identity changed while an older Keychain item still exists. FaceLock 1.0.1 uses an isolated versioned Keychain namespace and will not query pre-release items. Install 1.0.1 in `/Applications`, then enroll and configure its vault again. Do not enter your account password into an unexpected Keychain dialog merely to make the app continue.
+Click **Deny** and quit that copy of FaceLock. This means the app's signing identity changed while an older Keychain item still exists. FaceLock 1.0.1 and later use an isolated versioned Keychain namespace and will not query pre-release items. Install the latest release in `/Applications`, then enroll and configure its vault again. Do not enter your account password into an unexpected Keychain dialog merely to make the app continue.
 
 ### Recognition is too strict
 
