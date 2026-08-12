@@ -344,7 +344,10 @@ final class FaceProfileStore {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("FaceLock", isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        return directory.appendingPathComponent("face-profile.enc")
+        // Keep v1 public storage isolated from pre-release profiles encrypted by a
+        // differently signed build. Users re-enroll once instead of receiving an
+        // unexpected login-Keychain password prompt or an undecryptable profile.
+        return directory.appendingPathComponent("face-profile-v2.enc")
     }
 
     var isEnrolled: Bool { FileManager.default.fileExists(atPath: profileURL.path) }

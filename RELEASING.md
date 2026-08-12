@@ -13,7 +13,7 @@ Run:
 zsh scripts/build-release.sh
 ```
 
-The script creates `dist/FaceLock-1.0-macOS-arm64.zip` plus a SHA-256 checksum. Unzip it, move `FaceLock.app` to `/Applications`, launch it, and grant Camera and Accessibility permissions to that installed copy.
+The script creates a versioned archive such as `dist/FaceLock-1.0.1-macOS-arm64.zip` plus a SHA-256 checksum. Unzip it, move `FaceLock.app` to `/Applications`, launch it, and grant Camera and Accessibility permissions to that installed copy.
 
 The current machine has no usable code-signing identity, so this local build is ad-hoc signed. Do not present it as notarized.
 

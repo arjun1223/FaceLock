@@ -31,12 +31,15 @@ FaceLock is a macOS 14+ portfolio/research project that detects and recognizes a
 ### Install the app
 
 1. Open the [latest FaceLock release](https://github.com/arjun1223/FaceLock/releases/latest).
-2. Download `FaceLock-1.0-macOS-arm64.zip` and its `.sha256` file.
-3. Optional but recommended: put both files in the same folder and verify the archive:
+2. Download `FaceLock-1.0.1-macOS-arm64.zip`. The tiny `.sha256` file beside it is optional: it lets you verify that the ZIP was not corrupted or changed.
+3. To verify, download both files, open Terminal, and run these exact commands:
 
    ```sh
-   shasum -a 256 -c FaceLock-1.0-macOS-arm64.zip.sha256
+   cd ~/Downloads
+   shasum -a 256 -c FaceLock-1.0.1-macOS-arm64.zip.sha256
    ```
+
+   Terminal should print `FaceLock-1.0.1-macOS-arm64.zip: OK`. You can skip this check if you build FaceLock yourself from reviewed source.
 
 4. Unzip the archive and move `FaceLock.app` to `/Applications` **before granting permissions**.
 5. Open FaceLock. It has no Dock icon; look for its face icon in the macOS menu bar.
@@ -53,6 +56,9 @@ FaceLock is a macOS 14+ portfolio/research project that detects and recognizes a
 5. Choose **Set Up Password Vault**, approve Touch ID, and enter the macOS account password once. For this demo, use a disposable test account.
 6. Click **Arm Face Unlock for This Session** and approve Touch ID. Arming is required again whenever FaceLock restarts.
 7. Lock the Mac. On wake, face the camera with both eyes visible and look toward it. FaceLock falls back silently to normal password entry if recognition, liveness, attention, or autofill fails.
+
+> [!NOTE]
+> Version 1.0.1 intentionally does not read Keychain items or encrypted face profiles made by pre-release/Xcode builds with another signing identity. If you used a development build, click **Deny** on any old Keychain dialog, quit it, launch 1.0.1, then enroll and set up the vault once again.
 
 ## Everyday use
 
@@ -176,6 +182,10 @@ Secure Input and `loginwindow` behavior are controlled by macOS. A successful fa
 ### It asks me to arm the session
 
 Open **Security → Arm Face Unlock for This Session** and approve Touch ID. The decrypted vault key is intentionally not persisted across FaceLock restarts.
+
+### macOS asks for my “login” Keychain password
+
+Click **Deny** and quit that copy of FaceLock. This means the app's signing identity changed while an older Keychain item still exists. FaceLock 1.0.1 uses an isolated versioned Keychain namespace and will not query pre-release items. Install 1.0.1 in `/Applications`, then enroll and configure its vault again. Do not enter your account password into an unexpected Keychain dialog merely to make the app continue.
 
 ### Recognition is too strict
 

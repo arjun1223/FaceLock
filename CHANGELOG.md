@@ -2,6 +2,15 @@
 
 All notable FaceLock changes are recorded here.
 
+## 1.0.1 — 2026-08-12
+
+### Fixed
+
+- Isolated public builds from Keychain items and encrypted face profiles created by differently signed pre-release/Xcode builds.
+- Prevented passive password-vault status checks from displaying authentication UI.
+- Clarified how to dismiss the legacy login-Keychain prompt and set up the public build cleanly.
+- Simplified SHA-256 download-verification instructions.
+
 ## 1.0.0 — 2026-08-12
 
 ### Added

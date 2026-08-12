@@ -16,15 +16,19 @@ enum PasswordVaultError: LocalizedError {
 @MainActor
 final class PasswordVault: ObservableObject {
     static let shared = PasswordVault()
-    private let keyAccount = "mac-password-encryption-key-v1"
-    private let ciphertextAccount = "mac-password-ciphertext-v1"
-    private let manualBiometricGateKey = "passwordVaultUsesManualBiometricGate"
+    private let keyAccount = "mac-password-encryption-key-v2"
+    private let ciphertextAccount = "mac-password-ciphertext-v2"
+    private let manualBiometricGateKey = "passwordVaultUsesManualBiometricGate-v2"
     private let keychain = KeychainStore.shared
     private var sessionKeyData: Data?
     private var sessionCiphertext: Data?
     @Published private(set) var isArmed = false
 
-    var hasPassword: Bool { (try? keychain.load(account: ciphertextAccount)) != nil }
+    /// Menu construction and settings rendering must never summon authentication UI.
+    /// A deliberate Store/Arm action is the only place FaceLock may ask for Touch ID.
+    var hasPassword: Bool {
+        (try? keychain.load(account: ciphertextAccount, allowAuthenticationUI: false)) != nil
+    }
 
     func storeAfterBiometricAuthorization(password: String, context: LAContext) throws {
         guard context.evaluatedPolicyDomainState != nil else { throw LAError(.authenticationFailed) }
