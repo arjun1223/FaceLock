@@ -16,7 +16,7 @@
 FaceLock is a macOS 14+ portfolio/research project that detects and recognizes a face locally, checks basic liveness and eye attention, and then attempts to fill the real macOS password with Accessibility-approved HID-style events. Camera frames, recognition, encryption, and matching stay on the Mac. The app contains no runtime networking, analytics, telemetry, advertising, accounts, or cloud sync.
 
 > [!CAUTION]
-> FaceLock is **not Apple Face ID** and is not part of macOS's trusted authentication path. Third-party apps cannot replace or intercept `loginwindow` without unsupported system modifications, which FaceLock does not make. The autofill mechanism is experimental, can stop working after a macOS update, and is not a production security control. Use a disposable test account—not your primary Mac account.
+> FaceLock is **not Apple Face ID** and is not part of macOS's trusted authentication path. Third-party apps cannot replace or intercept `loginwindow` without unsupported system modifications, which FaceLock does not make. The autofill mechanism is experimental, can stop working after a macOS update, and is not a production security control. 
 
 ## Download
 
