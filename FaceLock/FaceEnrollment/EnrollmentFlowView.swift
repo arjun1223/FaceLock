@@ -1,58 +1,55 @@
 import SwiftUI
-import CoreVideo
 import Combine
-
-private struct EnrollmentMotionTarget {
-    let prompt: String
-    let x: Double
-    let y: Double
-}
+import CoreVideo
 
 enum EnrollmentMotionPolicy {
-    static let motionThreshold = 3.25
-    static let targetAlignmentMinimum = 0.50
-    static let minimumDirectionChangeDegrees = 12.0
-    static let stableTicksRequired = 2
-
-    static func angularDistance(from first: Double, to second: Double) -> Double {
-        let difference = abs(first - second).truncatingRemainder(dividingBy: 360)
-        return min(difference, 360 - difference)
+    enum Pose: Equatable {
+        case center, negativeYaw, positiveYaw
     }
 
-    static func hasAdvanced(from previous: Double?, to current: Double) -> Bool {
-        guard let previous else { return true }
-        return angularDistance(from: previous, to: current) >= minimumDirectionChangeDegrees
+    static func pose(yaw: Double, center: Double?, excluding completedSide: Pose? = nil) -> Pose? {
+        if let center {
+            let turn = yaw - center
+            if turn <= -5, completedSide != .negativeYaw { return .negativeYaw }
+            if turn >= 5, completedSide != .positiveYaw { return .positiveYaw }
+        } else if abs(yaw) <= 14 {
+            return .center
+        }
+        return nil
+    }
+}
+
+enum EnrollmentRingDirection {
+    static let segmentCount = 64
+
+    static func segment(x: Double, y: Double, reflect: Bool) -> Int? {
+        guard hypot(x, y) >= 0.025 else { return nil }
+        let angle = atan2(reflect ? -x : x, -y)
+        let index = Int((angle / (2 * .pi) * Double(segmentCount)).rounded())
+        return (index + segmentCount) % segmentCount
+    }
+
+    static func arc(around segment: Int) -> Set<Int> {
+        Set((-2...2).map { (segment + $0 + segmentCount) % segmentCount })
     }
 }
 
 struct EnrollmentFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var camera = CameraManager()
-    @State private var capturedFrames: [CVPixelBuffer] = []
-    @State private var isCapturing = false
+    @State private var centerSamples: [[Float]] = []
+    @State private var leftSamples: [[Float]] = []
+    @State private var rightSamples: [[Float]] = []
+    @State private var lastSequence: UInt64?
+    @State private var captureTask: Task<Void, Never>?
     @State private var errorMessage: String?
     @State private var processingStatus: String?
     @State private var mirrorPreview = true
-    @State private var neutralPose: FacePose?
-    @State private var targetIndex = 0
-    @State private var currentTargetProgress = 0.0
-    @State private var physicalLeftSign: Double?
-    @State private var physicalUpSign: Double?
-    @State private var horizontalSignalSource: Int?
-    @State private var verticalSignalSource: Int?
-    @State private var stableTargetTicks = 0
-    @State private var lastCompletedMotionAngle: Double?
-    private let samplesPerPose = 2
-    private let targets: [EnrollmentMotionTarget] = [
-        .init(prompt: "Move your head slowly to the left", x: 1, y: 0),
-        .init(prompt: "Continue toward the upper-left", x: 0.707, y: 0.707),
-        .init(prompt: "Continue across the top", x: 0, y: 1),
-        .init(prompt: "Continue toward the upper-right", x: -0.707, y: 0.707),
-        .init(prompt: "Continue to the right", x: -1, y: 0),
-        .init(prompt: "Continue toward the lower-right", x: -0.707, y: -0.707),
-        .init(prompt: "Continue across the bottom", x: 0, y: -1),
-        .init(prompt: "Finish at the lower-left", x: 0.707, y: -0.707)
-    ]
+    @State private var centerYaw: Double?
+    @State private var neutralNose: CGPoint?
+    @State private var visitedSegments: Set<Int> = []
+    @State private var activeSegment: Int?
+    private let samplesPerPose = 3
     private let scanTimer = Timer.publish(every: 0.06, on: .main, in: .common).autoconnect()
     let onCompleted: () -> Void
 
@@ -62,7 +59,9 @@ struct EnrollmentFlowView: View {
             VStack(spacing: 16) {
                 Text("Enroll Your Face").font(.largeTitle.bold()).foregroundStyle(Color.white)
                 ZStack {
-                    SegmentedProgressRing(progress: enrollmentProgress)
+                    SegmentedProgressRing(visited: visitedSegments,
+                                          active: activeSegment,
+                                          mirrored: mirrorPreview)
                         .frame(width: 380, height: 380)
                     CameraPreview(session: camera.session, isMirrored: mirrorPreview)
                         .frame(width: 300, height: 300)
@@ -74,13 +73,13 @@ struct EnrollmentFlowView: View {
                     .foregroundStyle(Color.white)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 430)
-                Text(errorMessage ?? captureGuidance)
+                Text(errorMessage.map { "\($0) Select Restart Scan to try again." } ?? captureGuidance)
                     .foregroundStyle(errorMessage == nil ? Color.gray : Color.red)
                     .multilineTextAlignment(.center)
                 Toggle("Mirror preview", isOn: $mirrorPreview)
                     .toggleStyle(.switch).fixedSize().foregroundStyle(Color.white)
                 HStack {
-                    Button("Cancel") { camera.stop(); dismiss() }
+                    Button("Cancel") { captureTask?.cancel(); camera.stop(); dismiss() }
                     Button("Restart Scan") { resetScan() }.buttonStyle(.bordered)
                 }
             }
@@ -88,203 +87,165 @@ struct EnrollmentFlowView: View {
         }
         .frame(minWidth: 620, minHeight: 650)
         .onAppear { camera.requestAccessAndStart() }
-        .onDisappear { camera.stop() }
+        .onDisappear {
+            captureTask?.cancel()
+            camera.stop()
+        }
         .onReceive(scanTimer) { _ in automaticCaptureTick() }
     }
 
-    private var enrollmentProgress: Double {
-        min((Double(targetIndex) + currentTargetProgress) / Double(targets.count), 1)
-    }
-
     private var scanPrompt: String {
+        if errorMessage != nil { return "Couldn’t finish enrollment" }
         if processingStatus != nil { return "Finishing your face scan" }
-        if neutralPose == nil { return "Position your face in the circle" }
-        guard targetIndex < targets.count else { return "Circle complete" }
-        return targets[targetIndex].prompt
+        if centerSamples.count < samplesPerPose { return "Look straight at the camera" }
+        if leftSamples.isEmpty && rightSamples.isEmpty { return "Turn your head slightly to either side" }
+        if leftSamples.count == samplesPerPose || rightSamples.count == samplesPerPose {
+            return "Turn your head slightly to the other side"
+        }
+        return "Turn slightly to either side and pause"
     }
 
     private var captureGuidance: String {
         if let processingStatus { return processingStatus }
-        guard camera.pose.faceDetected else { return camera.statusText }
+        guard camera.currentAnalyzedFrame(after: nil) != nil else {
+            return camera.pose.faceDetected ? "Keep your eyes and mouth visible to the camera" : camera.statusText
+        }
         if let guidance = camera.pose.enrollmentQualityGuidance { return guidance }
-        if isCapturing { return "Nice — capturing that angle…" }
-        if stableTargetTicks > 0 { return "Good — hold for just a moment…" }
-        if neutralPose == nil { return "Hold still for the starting position…" }
-        return "Move gradually to fill the ring — step \(min(targetIndex + 1, targets.count)) of \(targets.count)"
+        if centerSamples.count < samplesPerPose {
+            return "Straight ahead: \(centerSamples.count) of \(samplesPerPose) samples"
+        }
+        let samples = centerSamples.count + leftSamples.count + rightSamples.count
+        return "\(samples) of \(3 * samplesPerPose) samples captured"
     }
 
     private func automaticCaptureTick() {
-        guard camera.pose.isEnrollmentReady,
-              !isCapturing,
-              capturedFrames.count < (targets.count + 1) * samplesPerPose,
-              processingStatus == nil else {
-            stableTargetTicks = 0
+        guard processingStatus == nil else { return }
+        guard let frame = camera.currentAnalyzedFrame(after: nil) else {
+            activeSegment = nil
             return
         }
-        let pose = camera.pose
-        guard let neutralPose else {
-            self.neutralPose = pose
-            capturePoseSamples(advanceTarget: false)
-            return
-        }
-
-        guard targetIndex < targets.count else { return }
-        let yawSignal = pose.yawDegrees - neutralPose.yawDegrees
-        let noseXSignal = (pose.noseX - neutralPose.noseX) * 75
-        let pitchSignal = pose.pitchDegrees - neutralPose.pitchDegrees
-        let noseYSignal = (pose.noseY - neutralPose.noseY) * 75
-        let horizontal: Double
-        if horizontalSignalSource == 0 { horizontal = yawSignal }
-        else if horizontalSignalSource == 1 { horizontal = noseXSignal }
-        else { horizontal = dominantSignal(yawSignal, noseXSignal) }
-        let vertical: Double
-        switch verticalSignalSource {
-        case 0: vertical = pitchSignal
-        case 1: vertical = noseYSignal
-        default: vertical = dominantSignal(pitchSignal, noseYSignal)
-        }
-
-        if targetIndex == 0 {
-            currentTargetProgress = min(abs(horizontal) / EnrollmentMotionPolicy.motionThreshold, 1)
-            let targetReached = abs(horizontal) >= EnrollmentMotionPolicy.motionThreshold
-                && abs(horizontal) > abs(vertical) * 0.60
-            guard heldStably(targetReached) else { return }
-            horizontalSignalSource = abs(yawSignal) >= abs(noseXSignal) ? 0 : 1
-            physicalLeftSign = horizontal >= 0 ? 1 : -1
-            completeCurrentTarget(directionAngle: 0)
-            return
-        }
-
-        guard let physicalLeftSign else { return }
-        let logicalHorizontal = horizontal * physicalLeftSign
-        if targetIndex == 1, physicalUpSign == nil {
-            currentTargetProgress = min(min(max(logicalHorizontal, 0), abs(vertical)) / (EnrollmentMotionPolicy.motionThreshold * 0.55), 1)
-            guard logicalHorizontal >= EnrollmentMotionPolicy.motionThreshold * 0.45,
-                  abs(vertical) >= EnrollmentMotionPolicy.motionThreshold * 0.45 else {
-                stableTargetTicks = 0
-                return
-            }
-            let verticalSignals = [pitchSignal, noseYSignal]
-            verticalSignalSource = verticalSignals.indices.max(by: {
-                abs(verticalSignals[$0]) < abs(verticalSignals[$1])
-            })
-            physicalUpSign = vertical >= 0 ? 1 : -1
-        }
-        guard let physicalUpSign else { return }
-        let logicalVertical = vertical * physicalUpSign
-        let target = targets[targetIndex]
-        let projection = max(0, logicalHorizontal * target.x + logicalVertical * target.y)
-        let radius = hypot(logicalHorizontal, logicalVertical)
-        let alignment = radius > 0 ? projection / radius : 0
-        currentTargetProgress = min(projection / EnrollmentMotionPolicy.motionThreshold, 1)
-        let directionAngle = atan2(logicalVertical, logicalHorizontal) * 180 / .pi
-        let targetReached = projection >= EnrollmentMotionPolicy.motionThreshold
-            && alignment >= EnrollmentMotionPolicy.targetAlignmentMinimum
-            && EnrollmentMotionPolicy.hasAdvanced(from: lastCompletedMotionAngle, to: directionAngle)
-        guard heldStably(targetReached) else { return }
-        completeCurrentTarget(directionAngle: directionAngle)
+        guard frame.sequence != lastSequence else { return }
+        lastSequence = frame.sequence
+        updateRing(using: frame)
+        guard captureTask == nil, frame.pose.isEnrollmentReady,
+              let pose = EnrollmentMotionPolicy.pose(yaw: frame.pose.yawDegrees,
+                                                     center: centerSamples.count == samplesPerPose ? centerYaw : nil,
+                                                     excluding: completedSide) else { return }
+        captureSample(frame, pose: pose)
     }
 
-    private func dominantSignal(_ first: Double, _ second: Double) -> Double {
-        abs(first) >= abs(second) ? first : second
+    private var completedSide: EnrollmentMotionPolicy.Pose? {
+        if leftSamples.count == samplesPerPose { return .negativeYaw }
+        if rightSamples.count == samplesPerPose { return .positiveYaw }
+        return nil
     }
 
-    private func heldStably(_ targetReached: Bool) -> Bool {
-        guard targetReached else {
-            stableTargetTicks = 0
-            return false
-        }
-        stableTargetTicks += 1
-        return stableTargetTicks >= EnrollmentMotionPolicy.stableTicksRequired
-    }
-
-    private func completeCurrentTarget(directionAngle: Double) {
-        stableTargetTicks = 0
-        capturePoseSamples(advanceTarget: true, completedAngle: directionAngle)
-    }
-
-    private func capturePoseSamples(advanceTarget: Bool, completedAngle: Double? = nil) {
-        isCapturing = true
-        errorMessage = nil
-        Task {
+    private func captureSample(_ frame: AnalyzedCameraFrame, pose: EnrollmentMotionPolicy.Pose) {
+        captureTask = Task {
+            defer { if !Task.isCancelled { captureTask = nil } }
             do {
-                var poseFrames: [CVPixelBuffer] = []
-                for sampleIndex in 0..<samplesPerPose {
-                    guard camera.pose.isEnrollmentReady else { throw FaceEmbeddingError.poorCaptureQuality }
-                    guard let buffer = camera.currentPixelBuffer() else { throw FaceEmbeddingError.noFace }
-                    poseFrames.append(buffer)
-                    if sampleIndex + 1 < samplesPerPose {
-                        try await Task.sleep(for: .milliseconds(65))
-                    }
+                let sample = try await FaceEmbeddingService().embedding(from: frame.pixelBuffer,
+                                                                         using: frame.alignment)
+                try Task.checkCancellation()
+                errorMessage = nil
+                switch pose {
+                case .center:
+                    let count = Double(centerSamples.count + 1)
+                    let yaw = frame.pose.yawDegrees
+                    let nose = CGPoint(x: frame.pose.noseX, y: frame.pose.noseY)
+                    let previousNose = neutralNose ?? nose
+                    centerYaw = (centerYaw ?? yaw) + (yaw - (centerYaw ?? yaw)) / count
+                    neutralNose = CGPoint(x: previousNose.x + (nose.x - previousNose.x) / CGFloat(count),
+                                          y: previousNose.y + (nose.y - previousNose.y) / CGFloat(count))
+                    centerSamples.append(sample)
+                case .negativeYaw:
+                    leftSamples.append(sample)
+                case .positiveYaw:
+                    rightSamples.append(sample)
                 }
-                capturedFrames.append(contentsOf: poseFrames)
-                if advanceTarget {
-                    lastCompletedMotionAngle = completedAngle
-                    targetIndex += 1
+                if leftSamples.count == samplesPerPose && rightSamples.count == samplesPerPose {
+                    saveEnrollment()
                 }
-                currentTargetProgress = 0
-
-                let expectedFrames = (targets.count + 1) * samplesPerPose
-                guard capturedFrames.count >= expectedFrames else {
-                    isCapturing = false
-                    return
-                }
-
-                let framesToProcess = capturedFrames
-                processingStatus = "Scan complete — analyzing \(framesToProcess.count) high-quality face samples…"
-                let service = FaceEmbeddingService()
-                var embeddings: [[Float]] = []
-                for frame in framesToProcess {
-                    embeddings.append(try await service.embedding(from: frame))
-                }
-                try FaceProfileStore.shared.save(embeddings: embeddings, samplesPerPose: samplesPerPose)
-                processingStatus = "Face enrollment complete ✓"
-                camera.stop()
-                try? await Task.sleep(for: .seconds(0.8))
-                onCompleted()
-                dismiss()
+            } catch FaceEmbeddingError.alignmentFailed {
+                // Keep the accepted samples and try the next usable camera frame.
             } catch {
+                guard !Task.isCancelled else { return }
+                processingStatus = "Select Restart Scan to try again."
                 errorMessage = error.localizedDescription
-                processingStatus = nil
-                isCapturing = false
-                if !advanceTarget { neutralPose = nil }
             }
+        }
+    }
+
+    private func updateRing(using frame: AnalyzedCameraFrame) {
+        guard frame.pose.faceCount == 1, let neutralNose else {
+            activeSegment = nil
+            return
+        }
+        let box = frame.alignment.faceBoundingBox
+        let aspect = Double(CVPixelBufferGetHeight(frame.pixelBuffer))
+            / Double(CVPixelBufferGetWidth(frame.pixelBuffer))
+        // Undo Vision's leftMirrored orientation to get the preview's unmirrored,
+        // top-left coordinate system. Keep the offset relative to the face.
+        let width = Double(box.height)
+        let height = Double(box.width) * aspect
+        let scale = max(width, height)
+        guard scale > 0 else { return }
+        let x = (Double(neutralNose.y) - frame.pose.noseY) * width / scale
+        let y = (frame.pose.noseX - Double(neutralNose.x)) * height / scale
+        activeSegment = EnrollmentRingDirection.segment(x: x, y: y, reflect: frame.isVideoMirrored)
+        if let activeSegment {
+            visitedSegments.formUnion(EnrollmentRingDirection.arc(around: activeSegment))
+        }
+    }
+
+    private func saveEnrollment() {
+        processingStatus = "Saving your face profile…"
+        do {
+            try FaceProfileStore.shared.save(embeddings: centerSamples + leftSamples + rightSamples,
+                                             samplesPerPose: samplesPerPose)
+            onCompleted()
+            dismiss()
+        } catch {
+            processingStatus = "Select Restart Scan to try again."
+            errorMessage = error.localizedDescription
         }
     }
 
     private func resetScan() {
-        capturedFrames.removeAll()
-        neutralPose = nil
-        targetIndex = 0
-        currentTargetProgress = 0
-        physicalLeftSign = nil
-        physicalUpSign = nil
-        horizontalSignalSource = nil
-        verticalSignalSource = nil
-        stableTargetTicks = 0
-        lastCompletedMotionAngle = nil
-        isCapturing = false
+        captureTask?.cancel()
+        captureTask = nil
+        centerSamples.removeAll()
+        leftSamples.removeAll()
+        rightSamples.removeAll()
+        centerYaw = nil
+        neutralNose = nil
+        visitedSegments.removeAll()
+        activeSegment = nil
         errorMessage = nil
         processingStatus = nil
     }
 }
 
 private struct SegmentedProgressRing: View {
-    let progress: Double
-    private let segmentCount = 64
+    let visited: Set<Int>
+    let active: Int?
+    let mirrored: Bool
+    private let segmentCount = EnrollmentRingDirection.segmentCount
 
     var body: some View {
+        let activeArc = active.map(EnrollmentRingDirection.arc(around:)) ?? []
         ZStack {
             ForEach(0..<segmentCount, id: \.self) { index in
+                let sourceIndex = mirrored ? (segmentCount - index) % segmentCount : index
                 Capsule()
-                    .fill(Double(index) < progress * Double(segmentCount)
-                          ? Color.green
+                    .fill(activeArc.contains(sourceIndex) ? Color.green
+                          : visited.contains(sourceIndex) ? Color.green.opacity(0.65)
                           : Color.white.opacity(0.35))
                     .frame(width: 4, height: 18)
                     .offset(y: -176)
                     .rotationEffect(.degrees(Double(index) * 360 / Double(segmentCount)))
             }
         }
-        .animation(.easeOut(duration: 0.12), value: progress)
+        .animation(.easeOut(duration: 0.12), value: visited)
     }
 }

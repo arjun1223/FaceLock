@@ -121,6 +121,7 @@ struct AnalyzedCameraFrame {
     let sequence: UInt64
     let pose: FacePose
     let alignment: FaceAlignmentGeometry
+    let isVideoMirrored: Bool
 }
 
 final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
@@ -137,6 +138,7 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
     private var latestAnalyzedBufferTime: CFTimeInterval = 0
     private var latestAnalyzedPose = FacePose()
     private var latestAlignment: FaceAlignmentGeometry?
+    private var latestVideoMirrored = false
     private var latestAnalyzedSequence: UInt64 = 0
     private var captureGeneration: UInt = 0
     private var acceptingFrames = false
@@ -198,7 +200,8 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
         return AnalyzedCameraFrame(pixelBuffer: latestAnalyzedBuffer,
                                    sequence: latestAnalyzedSequence,
                                    pose: latestAnalyzedPose,
-                                   alignment: latestAlignment)
+                                   alignment: latestAlignment,
+                                   isVideoMirrored: latestVideoMirrored)
     }
 
     private func beginFreshCapture() {
@@ -363,6 +366,7 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
         latestAnalyzedBufferTime = CACurrentMediaTime()
         latestAnalyzedPose = value
         latestAlignment = alignment
+        latestVideoMirrored = connection.isVideoMirrored
         latestAnalyzedSequence &+= 1
         bufferLock.unlock()
         DispatchQueue.main.async { [weak self] in

@@ -3,7 +3,7 @@ import XCTest
 
 final class FaceLockTests: XCTestCase {
     func testPublicBuildUsesVersionedKeychainNamespace() {
-        XCTAssertEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v4")
+        XCTAssertEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v5")
         XCTAssertNotEqual(KeychainStore.service, "com.facelock.local.credentials")
         XCTAssertNotEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v3")
     }
@@ -108,11 +108,16 @@ final class FaceLockTests: XCTestCase {
     }
 
     func testEnrollmentMotionRequiresRealDirectionalProgress() {
-        XCTAssertFalse(EnrollmentMotionPolicy.hasAdvanced(from: 45, to: 52))
-        XCTAssertTrue(EnrollmentMotionPolicy.hasAdvanced(from: 45, to: 60))
-        XCTAssertTrue(EnrollmentMotionPolicy.hasAdvanced(from: 175, to: -165))
-        XCTAssertEqual(EnrollmentMotionPolicy.angularDistance(from: 175, to: -165),
-                       20, accuracy: 0.001)
+        XCTAssertEqual(EnrollmentMotionPolicy.pose(yaw: 3, center: nil), .center)
+        XCTAssertEqual(EnrollmentMotionPolicy.pose(yaw: 14, center: nil), .center)
+        XCTAssertNil(EnrollmentMotionPolicy.pose(yaw: 15, center: nil))
+        XCTAssertNil(EnrollmentMotionPolicy.pose(yaw: 3, center: 3))
+        XCTAssertNil(EnrollmentMotionPolicy.pose(yaw: 7, center: 3))
+        XCTAssertEqual(EnrollmentMotionPolicy.pose(yaw: 8, center: 3), .positiveYaw)
+        XCTAssertEqual(EnrollmentMotionPolicy.pose(yaw: -2, center: 3), .negativeYaw)
+        XCTAssertNil(EnrollmentMotionPolicy.pose(yaw: 15, center: 3, excluding: .positiveYaw))
+        XCTAssertEqual(EnrollmentMotionPolicy.pose(yaw: -4, center: 3, excluding: .positiveYaw),
+                       .negativeYaw)
 
         let mildlyBlurredTurn = FacePose(yawDegrees: 38, captureQuality: 0.10,
                                          faceSize: 0.18, confidence: 0.5,
@@ -121,6 +126,15 @@ final class FaceLockTests: XCTestCase {
         XCTAssertFalse(mildlyBlurredTurn.isRecognitionReady)
         XCTAssertFalse(FacePose(yawDegrees: 41, captureQuality: 1,
                                 faceDetected: true).isEnrollmentReady)
+    }
+
+    func testEnrollmentRingLightsThePointedDirection() {
+        XCTAssertNil(EnrollmentRingDirection.segment(x: 0.01, y: 0, reflect: false))
+        XCTAssertEqual(EnrollmentRingDirection.segment(x: 0, y: -1, reflect: false), 0)
+        XCTAssertEqual(EnrollmentRingDirection.segment(x: 1, y: 0, reflect: false), 16)
+        XCTAssertEqual(EnrollmentRingDirection.segment(x: 0, y: 1, reflect: false), 32)
+        XCTAssertEqual(EnrollmentRingDirection.segment(x: 1, y: 0, reflect: true), 48)
+        XCTAssertEqual(EnrollmentRingDirection.arc(around: 0), [62, 63, 0, 1, 2])
     }
 
     func testEyeAttentionRequiresCenteredOpenEyesAndFinalAttention() {

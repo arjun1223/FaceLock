@@ -1,0 +1,32 @@
+name: Build FaceLock update
+
+on:
+  push:
+    branches: [agent/enrollment-install]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          persist-credentials: false
+      - name: Test
+        run: |
+          xcodebuild -quiet -project FaceLock.xcodeproj -scheme FaceLock \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath "$RUNNER_TEMP/FaceLockTests" \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= test
+      - name: Build and package
+        run: zsh scripts/build-release.sh "$RUNNER_TEMP/FaceLockOutput"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FaceLock-install
+          path: ${{ runner.temp }}/FaceLockOutput/*
+          if-no-files-found: error
+          retention-days: 7
