@@ -3,7 +3,7 @@ import XCTest
 
 final class FaceLockTests: XCTestCase {
     func testPublicBuildUsesVersionedKeychainNamespace() {
-        XCTAssertEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v5")
+        XCTAssertEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v6")
         XCTAssertNotEqual(KeychainStore.service, "com.facelock.local.credentials")
         XCTAssertNotEqual(KeychainStore.service, "io.github.arjun1223.FaceLock.credentials.v3")
     }

@@ -40,6 +40,7 @@ struct EnrollmentFlowView: View {
     @State private var centerSamples: [[Float]] = []
     @State private var leftSamples: [[Float]] = []
     @State private var rightSamples: [[Float]] = []
+    @State private var manualPose: EnrollmentMotionPolicy.Pose?
     @State private var lastSequence: UInt64?
     @State private var captureTask: Task<Void, Never>?
     @State private var errorMessage: String?
@@ -76,11 +77,19 @@ struct EnrollmentFlowView: View {
                 Text(errorMessage.map { "\($0) Select Restart Scan to try again." } ?? captureGuidance)
                     .foregroundStyle(errorMessage == nil ? Color.gray : Color.red)
                     .multilineTextAlignment(.center)
+                Text("\(centerSamples.count) straight · \(leftSamples.count + rightSamples.count) of \(2 * samplesPerPose) side samples")
+                    .font(.callout.monospacedDigit())
+                    .foregroundStyle(.white)
                 Toggle("Mirror preview", isOn: $mirrorPreview)
                     .toggleStyle(.switch).fixedSize().foregroundStyle(Color.white)
                 HStack {
                     Button("Cancel") { captureTask?.cancel(); camera.stop(); dismiss() }
                     Button("Restart Scan") { resetScan() }.buttonStyle(.bordered)
+                    Button(manualPose == nil ? "Capture This Pose" : "Capturing…") {
+                        manualPose = nextManualPose
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(manualPose != nil || processingStatus != nil || !camera.pose.isEnrollmentReady)
                 }
             }
             .padding(28)
@@ -111,11 +120,8 @@ struct EnrollmentFlowView: View {
             return camera.pose.faceDetected ? "Keep your eyes and mouth visible to the camera" : camera.statusText
         }
         if let guidance = camera.pose.enrollmentQualityGuidance { return guidance }
-        if centerSamples.count < samplesPerPose {
-            return "Straight ahead: \(centerSamples.count) of \(samplesPerPose) samples"
-        }
-        let samples = centerSamples.count + leftSamples.count + rightSamples.count
-        return "\(samples) of \(3 * samplesPerPose) samples captured"
+        if manualPose != nil { return "Hold this pose while FaceLock captures it" }
+        return "If auto capture stalls, hold the requested pose and click Capture This Pose"
     }
 
     private func automaticCaptureTick() {
@@ -128,10 +134,18 @@ struct EnrollmentFlowView: View {
         lastSequence = frame.sequence
         updateRing(using: frame)
         guard captureTask == nil, frame.pose.isEnrollmentReady,
-              let pose = EnrollmentMotionPolicy.pose(yaw: frame.pose.yawDegrees,
+              let pose = manualPose ?? EnrollmentMotionPolicy.pose(yaw: frame.pose.yawDegrees,
                                                      center: centerSamples.count == samplesPerPose ? centerYaw : nil,
                                                      excluding: completedSide) else { return }
         captureSample(frame, pose: pose)
+    }
+
+    private var nextManualPose: EnrollmentMotionPolicy.Pose {
+        if centerSamples.count < samplesPerPose { return .center }
+        if let completedSide {
+            return completedSide == .negativeYaw ? .positiveYaw : .negativeYaw
+        }
+        return leftSamples.count >= rightSamples.count ? .negativeYaw : .positiveYaw
     }
 
     private var completedSide: EnrollmentMotionPolicy.Pose? {
@@ -162,6 +176,16 @@ struct EnrollmentFlowView: View {
                     leftSamples.append(sample)
                 case .positiveYaw:
                     rightSamples.append(sample)
+                }
+                if let manualPose {
+                    switch manualPose {
+                    case .center:
+                        if centerSamples.count == samplesPerPose { self.manualPose = nil }
+                    case .negativeYaw:
+                        if leftSamples.count == samplesPerPose { self.manualPose = nil }
+                    case .positiveYaw:
+                        if rightSamples.count == samplesPerPose { self.manualPose = nil }
+                    }
                 }
                 if leftSamples.count == samplesPerPose && rightSamples.count == samplesPerPose {
                     saveEnrollment()
@@ -217,6 +241,7 @@ struct EnrollmentFlowView: View {
         centerSamples.removeAll()
         leftSamples.removeAll()
         rightSamples.removeAll()
+        manualPose = nil
         centerYaw = nil
         neutralNose = nil
         visitedSegments.removeAll()
@@ -239,7 +264,7 @@ private struct SegmentedProgressRing: View {
                 let sourceIndex = mirrored ? (segmentCount - index) % segmentCount : index
                 Capsule()
                     .fill(activeArc.contains(sourceIndex) ? Color.green
-                          : visited.contains(sourceIndex) ? Color.green.opacity(0.65)
+                          : visited.contains(sourceIndex) ? Color.teal.opacity(0.35)
                           : Color.white.opacity(0.35))
                     .frame(width: 4, height: 18)
                     .offset(y: -176)
