@@ -51,7 +51,7 @@ FaceLock is a macOS 14+ portfolio/research project that detects and recognizes a
 
 1. Open the FaceLock menu-bar icon and choose **Settings**.
 2. Read the Camera and Accessibility rationale, then grant both permissions in **System Settings → Privacy & Security**. Quit and reopen FaceLock after changing permissions.
-3. Open **Face Enrollment**. Look straight at the camera, turn slightly to either side, then turn slightly to the other side. Pause briefly at each position while the ring fills.
+3. Open **Face Enrollment**. Look straight at the camera, turn slightly to either side, then turn slightly to the other side. At each pose, wait for the ring to turn green, then press Space or click **Capture Pose**.
 4. Open **Security → Test Face Recognition**. Test yourself and at least one other person. Do not lower the default similarity threshold just to force a pass.
 5. Choose **Set Up Password Vault**, approve Touch ID, and enter the macOS account password once. For this demo, use a disposable test account.
 6. Click **Arm Face Unlock for This Session** and approve Touch ID. Arming is required again whenever FaceLock restarts.

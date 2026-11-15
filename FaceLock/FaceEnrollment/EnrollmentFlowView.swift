@@ -40,17 +40,21 @@ struct EnrollmentFlowView: View {
     @State private var centerSamples: [[Float]] = []
     @State private var leftSamples: [[Float]] = []
     @State private var rightSamples: [[Float]] = []
-    @State private var manualPose: EnrollmentMotionPolicy.Pose?
+    @State private var readyPose: EnrollmentMotionPolicy.Pose?
+    @State private var readyFrames: [AnalyzedCameraFrame] = []
     @State private var lastSequence: UInt64?
     @State private var captureTask: Task<Void, Never>?
     @State private var errorMessage: String?
     @State private var processingStatus: String?
     @State private var mirrorPreview = true
     @State private var centerYaw: Double?
+    @State private var useNoseForSide: Bool?
     @State private var neutralNose: CGPoint?
-    @State private var visitedSegments: Set<Int> = []
     @State private var activeSegment: Int?
     private let samplesPerPose = 3
+    private var canCapture: Bool {
+        readyFrames.count == samplesPerPose && captureTask == nil && processingStatus == nil
+    }
     private let scanTimer = Timer.publish(every: 0.06, on: .main, in: .common).autoconnect()
     let onCompleted: () -> Void
 
@@ -60,37 +64,45 @@ struct EnrollmentFlowView: View {
             VStack(spacing: 16) {
                 Text("Enroll Your Face").font(.largeTitle.bold()).foregroundStyle(Color.white)
                 ZStack {
-                    SegmentedProgressRing(visited: visitedSegments,
-                                          active: activeSegment,
-                                          mirrored: mirrorPreview)
+                    SegmentedProgressRing(active: activeSegment,
+                                          mirrored: mirrorPreview,
+                                          ready: canCapture)
                         .frame(width: 380, height: 380)
                     CameraPreview(session: camera.session, isMirrored: mirrorPreview)
                         .frame(width: 300, height: 300)
                         .clipShape(Circle())
-                        .overlay { Circle().stroke(Color.white.opacity(0.45), lineWidth: 2) }
+                        .overlay { Circle().stroke(canCapture ? Color.green : Color.white.opacity(0.45), lineWidth: 2) }
                 }
                 Text(scanPrompt)
                     .font(.title2.bold())
                     .foregroundStyle(Color.white)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 430)
-                Text(errorMessage.map { "\($0) Select Restart Scan to try again." } ?? captureGuidance)
+                Text(errorMessage ?? captureGuidance)
                     .foregroundStyle(errorMessage == nil ? Color.gray : Color.red)
                     .multilineTextAlignment(.center)
-                Text("\(centerSamples.count) straight · \(leftSamples.count + rightSamples.count) of \(2 * samplesPerPose) side samples")
+                Text("\(posesCaptured) of 3 poses captured")
                     .font(.callout.monospacedDigit())
                     .foregroundStyle(.white)
                 Toggle("Mirror preview", isOn: $mirrorPreview)
                     .toggleStyle(.switch).fixedSize().foregroundStyle(Color.white)
+                Button(action: capturePose) {
+                    Label(captureTask == nil ? "Capture Pose  ·  Space" : "Capturing…",
+                          systemImage: "camera.fill")
+                        .font(.title3.bold())
+                        .frame(width: 310)
+                        .padding(.vertical, 9)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.green)
+                .keyboardShortcut(.space, modifiers: [])
+                .disabled(!canCapture)
                 HStack {
                     Button("Cancel") { captureTask?.cancel(); camera.stop(); dismiss() }
-                    Button("Restart Scan") { resetScan() }.buttonStyle(.bordered)
-                    Button(manualPose == nil ? "Capture This Pose" : "Capturing…") {
-                        manualPose = nextManualPose
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(manualPose != nil || processingStatus != nil || !camera.pose.isEnrollmentReady)
+                    Button("Restart Scan") { resetScan() }
                 }
+                .buttonStyle(EnrollmentOutlineButtonStyle())
             }
             .padding(28)
         }
@@ -100,18 +112,17 @@ struct EnrollmentFlowView: View {
             captureTask?.cancel()
             camera.stop()
         }
-        .onReceive(scanTimer) { _ in automaticCaptureTick() }
+        .onReceive(scanTimer) { _ in updateCaptureGuide() }
     }
 
     private var scanPrompt: String {
-        if errorMessage != nil { return "Couldn’t finish enrollment" }
         if processingStatus != nil { return "Finishing your face scan" }
         if centerSamples.count < samplesPerPose { return "Look straight at the camera" }
         if leftSamples.isEmpty && rightSamples.isEmpty { return "Turn your head slightly to either side" }
         if leftSamples.count == samplesPerPose || rightSamples.count == samplesPerPose {
             return "Turn your head slightly to the other side"
         }
-        return "Turn slightly to either side and pause"
+        return "Turn your head slightly to either side"
     }
 
     private var captureGuidance: String {
@@ -120,81 +131,95 @@ struct EnrollmentFlowView: View {
             return camera.pose.faceDetected ? "Keep your eyes and mouth visible to the camera" : camera.statusText
         }
         if let guidance = camera.pose.enrollmentQualityGuidance { return guidance }
-        if manualPose != nil { return "Hold this pose while FaceLock captures it" }
-        return "If auto capture stalls, hold the requested pose and click Capture This Pose"
+        if captureTask != nil { return "Processing the captured pose…" }
+        return canCapture ? "Ready. Press Space to capture." : "Hold the requested pose until the ring turns green."
     }
 
-    private func automaticCaptureTick() {
-        guard processingStatus == nil else { return }
-        guard let frame = camera.currentAnalyzedFrame(after: nil) else {
+    private var posesCaptured: Int {
+        [centerSamples, leftSamples, rightSamples].filter { !$0.isEmpty }.count
+    }
+
+    private var completedSide: EnrollmentMotionPolicy.Pose? {
+        if !leftSamples.isEmpty { return .negativeYaw }
+        if !rightSamples.isEmpty { return .positiveYaw }
+        return nil
+    }
+
+    private func updateCaptureGuide() {
+        guard processingStatus == nil, captureTask == nil else { return }
+        guard let frame = camera.currentAnalyzedFrame(after: nil, maximumAge: 0.35) else {
             activeSegment = nil
+            clearReadyPose()
             return
         }
         guard frame.sequence != lastSequence else { return }
         lastSequence = frame.sequence
         updateRing(using: frame)
-        guard captureTask == nil, frame.pose.isEnrollmentReady,
-              let pose = manualPose ?? EnrollmentMotionPolicy.pose(yaw: frame.pose.yawDegrees,
-                                                     center: centerSamples.count == samplesPerPose ? centerYaw : nil,
-                                                     excluding: completedSide) else { return }
-        captureSample(frame, pose: pose)
-    }
-
-    private var nextManualPose: EnrollmentMotionPolicy.Pose {
-        if centerSamples.count < samplesPerPose { return .center }
-        if let completedSide {
-            return completedSide == .negativeYaw ? .positiveYaw : .negativeYaw
+        guard let pose = eligiblePose(for: frame) else {
+            clearReadyPose()
+            return
         }
-        return leftSamples.count >= rightSamples.count ? .negativeYaw : .positiveYaw
+        if readyPose != pose {
+            clearReadyPose()
+            readyPose = pose
+        }
+        if readyFrames.count == samplesPerPose { readyFrames.removeFirst() }
+        readyFrames.append(frame)
     }
 
-    private var completedSide: EnrollmentMotionPolicy.Pose? {
-        if leftSamples.count == samplesPerPose { return .negativeYaw }
-        if rightSamples.count == samplesPerPose { return .positiveYaw }
-        return nil
+    private func eligiblePose(for frame: AnalyzedCameraFrame) -> EnrollmentMotionPolicy.Pose? {
+        guard frame.pose.isEnrollmentReady else { return nil }
+        let yawPose = EnrollmentMotionPolicy.pose(yaw: frame.pose.yawDegrees, center: centerYaw)
+        guard centerYaw != nil, let neutralNose else { return yawPose }
+        let noseTurn = (Double(neutralNose.y) - frame.pose.noseY) * 125
+        let nosePose = EnrollmentMotionPolicy.pose(yaw: noseTurn, center: 0)
+        let pose = useNoseForSide == true ? nosePose
+            : useNoseForSide == false ? yawPose : yawPose ?? nosePose
+        return pose == completedSide ? nil : pose
     }
 
-    private func captureSample(_ frame: AnalyzedCameraFrame, pose: EnrollmentMotionPolicy.Pose) {
+    private func clearReadyPose() {
+        readyPose = nil
+        readyFrames.removeAll()
+    }
+
+    private func capturePose() {
+        guard canCapture, let pose = readyPose,
+              let latest = camera.currentAnalyzedFrame(after: nil, maximumAge: 0.35),
+              eligiblePose(for: latest) == pose else {
+            return
+        }
+        let frames = readyFrames
+        let usesNose = EnrollmentMotionPolicy.pose(yaw: latest.pose.yawDegrees, center: centerYaw) == nil
+        clearReadyPose()
         captureTask = Task {
             defer { if !Task.isCancelled { captureTask = nil } }
             do {
-                let sample = try await FaceEmbeddingService().embedding(from: frame.pixelBuffer,
-                                                                         using: frame.alignment)
+                let service = FaceEmbeddingService()
+                var samples: [[Float]] = []
+                for frame in frames {
+                    try Task.checkCancellation()
+                    samples.append(try await service.embedding(from: frame.pixelBuffer, using: frame.alignment))
+                }
                 try Task.checkCancellation()
                 errorMessage = nil
                 switch pose {
                 case .center:
-                    let count = Double(centerSamples.count + 1)
-                    let yaw = frame.pose.yawDegrees
-                    let nose = CGPoint(x: frame.pose.noseX, y: frame.pose.noseY)
-                    let previousNose = neutralNose ?? nose
-                    centerYaw = (centerYaw ?? yaw) + (yaw - (centerYaw ?? yaw)) / count
-                    neutralNose = CGPoint(x: previousNose.x + (nose.x - previousNose.x) / CGFloat(count),
-                                          y: previousNose.y + (nose.y - previousNose.y) / CGFloat(count))
-                    centerSamples.append(sample)
+                    let count = Double(frames.count)
+                    centerYaw = frames.map(\.pose.yawDegrees).reduce(0, +) / count
+                    neutralNose = CGPoint(x: frames.map(\.pose.noseX).reduce(0, +) / count,
+                                          y: frames.map(\.pose.noseY).reduce(0, +) / count)
+                    centerSamples = samples
                 case .negativeYaw:
-                    leftSamples.append(sample)
+                    if useNoseForSide == nil { useNoseForSide = usesNose }
+                    leftSamples = samples
                 case .positiveYaw:
-                    rightSamples.append(sample)
+                    if useNoseForSide == nil { useNoseForSide = usesNose }
+                    rightSamples = samples
                 }
-                if let manualPose {
-                    switch manualPose {
-                    case .center:
-                        if centerSamples.count == samplesPerPose { self.manualPose = nil }
-                    case .negativeYaw:
-                        if leftSamples.count == samplesPerPose { self.manualPose = nil }
-                    case .positiveYaw:
-                        if rightSamples.count == samplesPerPose { self.manualPose = nil }
-                    }
-                }
-                if leftSamples.count == samplesPerPose && rightSamples.count == samplesPerPose {
-                    saveEnrollment()
-                }
-            } catch FaceEmbeddingError.alignmentFailed {
-                // Keep the accepted samples and try the next usable camera frame.
+                if posesCaptured == 3 { saveEnrollment() }
             } catch {
                 guard !Task.isCancelled else { return }
-                processingStatus = "Select Restart Scan to try again."
                 errorMessage = error.localizedDescription
             }
         }
@@ -217,9 +242,6 @@ struct EnrollmentFlowView: View {
         let x = (Double(neutralNose.y) - frame.pose.noseY) * width / scale
         let y = (frame.pose.noseX - Double(neutralNose.x)) * height / scale
         activeSegment = EnrollmentRingDirection.segment(x: x, y: y, reflect: frame.isVideoMirrored)
-        if let activeSegment {
-            visitedSegments.formUnion(EnrollmentRingDirection.arc(around: activeSegment))
-        }
     }
 
     private func saveEnrollment() {
@@ -241,20 +263,36 @@ struct EnrollmentFlowView: View {
         centerSamples.removeAll()
         leftSamples.removeAll()
         rightSamples.removeAll()
-        manualPose = nil
+        clearReadyPose()
         centerYaw = nil
+        useNoseForSide = nil
         neutralNose = nil
-        visitedSegments.removeAll()
         activeSegment = nil
         errorMessage = nil
         processingStatus = nil
     }
 }
 
+private struct EnrollmentOutlineButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.callout.weight(.semibold))
+            .foregroundStyle(Color.white)
+            .padding(.horizontal, 17)
+            .padding(.vertical, 9)
+            .background(Color.white.opacity(configuration.isPressed ? 0.22 : 0.06),
+                        in: RoundedRectangle(cornerRadius: 8))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(Color.white.opacity(0.65))
+            }
+    }
+}
+
 private struct SegmentedProgressRing: View {
-    let visited: Set<Int>
     let active: Int?
     let mirrored: Bool
+    let ready: Bool
     private let segmentCount = EnrollmentRingDirection.segmentCount
 
     var body: some View {
@@ -263,14 +301,14 @@ private struct SegmentedProgressRing: View {
             ForEach(0..<segmentCount, id: \.self) { index in
                 let sourceIndex = mirrored ? (segmentCount - index) % segmentCount : index
                 Capsule()
-                    .fill(activeArc.contains(sourceIndex) ? Color.green
-                          : visited.contains(sourceIndex) ? Color.teal.opacity(0.35)
+                    .fill(ready ? Color.green
+                          : activeArc.contains(sourceIndex) ? Color.teal
                           : Color.white.opacity(0.35))
                     .frame(width: 4, height: 18)
                     .offset(y: -176)
                     .rotationEffect(.degrees(Double(index) * 360 / Double(segmentCount)))
             }
         }
-        .animation(.easeOut(duration: 0.12), value: visited)
+        .animation(.easeOut(duration: 0.12), value: ready)
     }
 }

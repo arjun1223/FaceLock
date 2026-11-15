@@ -2,7 +2,7 @@ import Foundation
 import CryptoKit
 
 struct CryptoService {
-    private let keyAccount = "face-profile-aes-key-v6"
+    private let keyAccount = "face-profile-aes-key-v7"
     private let keychain = KeychainStore.shared
 
     private func key() throws -> SymmetricKey {
